@@ -49,18 +49,6 @@ msgstr ""
 msgid "Send"
 msgstr ""
 
-msgid "Before using this app..."
-msgstr ""
-
-msgid "All data that you provide to this application will be sent to Google to proceed with Gemini 1.5 AI model. Keep in mind that all conversions may be used by Google team to train next generations of Gemini. Do not share any personal or secret information with Gemini."
-msgstr ""
-
-msgid "Also, keep in mind that Gemini isn't totally perfect, and it can generate incorrect information, may produce offensive or biased content. Developer of \"AI-Chat\" only provide access to Gemini, and didn't responsible for any content that is generated with this tool."
-msgstr ""
-
-msgid "Continue only of you agree with all of this"
-msgstr ""
-
 msgid "Continue"
 msgstr ""
 

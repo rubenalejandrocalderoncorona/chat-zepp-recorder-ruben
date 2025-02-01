@@ -20,27 +20,27 @@ class PrivacyWarningScreen extends ListView<IMEProps & {continueUrl: string}> {
         marginV: 6,
       }),
       new TextComponent({
-        text: t("All data that you provide to this application will be sent to Google to proceed with Gemini 1.5 AI model. " +
-          "Keep in mind that all conversions may be used by Google team to train next generations of Gemini. Do not share " +
-          "any personal or secret information with Gemini."),
+        text: t("This application is an frontend for OpenRouter — unified LLMs API provider. " +
+            "By using this application, you agree with Privacy Policy of selected model provider, which " +
+            "you can find online."),
         marginV: 4,
       }),
       new TextComponent({
-        text: t("Also, keep in mind that Gemini isn't totally perfect, and it can generate incorrect information, " +
-          "may produce offensive or biased content. Developer of \"AI-Chat\" only provide access to Gemini, and didn't " +
-          "responsible for any content that is generated with this tool."),
+        text: t("AI models can give your incorrect or harmful response, developer(s) of AI Chat " +
+            "are not responsible for anything that you got as response. Please, do not use AI as " +
+            "an medical consultant."),
         marginV: 4,
       }),
       new TextComponent({
-        text: t("Continue only of you agree with all of this"),
-        color: 0x999999,
+        text: t("Keep in mind that this application and/or your preferred AI model can stop working " +
+            "at any time. We didn't provide any guarantees."),
         marginV: 4,
       }),
       this.props.continueUrl ? new Button({
         text: t("Continue"),
         variant: ButtonVariant.DEFAULT,
         onClick: () => {
-          localStorage.setItem("privacyStatementRead", "true");
+          localStorage.setItem("privacyStatementRead2", "true");
           (localStorage as ConfigStorage).writeChanges();
           replace({
             url: this.props.continueUrl,

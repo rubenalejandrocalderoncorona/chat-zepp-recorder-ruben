@@ -8,6 +8,7 @@ import {getRequestHeaders} from "./shared/Tools";
 import {ServerLimitsResponse} from "./types/ServerResponse";
 import {TextComponent} from "mzfw/device/UiTextComponent";
 import {align} from "@zosx/ui";
+import {back} from "@zosx/router";
 
 class SettingsScreen extends ListView<any> {
   public theme = new AiChatTheme();
@@ -40,9 +41,41 @@ class SettingsScreen extends ListView<any> {
   }
 
   protected buildMore(page: number): Promise<Component<any>[]> {
-    if(page > 0)
-      return Promise.resolve([]);
+    switch (page) {
+      case 0:
+        return this.buildModelPicker();
+      case 1:
+        return this.buildStats();
+      default:
+        return Promise.resolve([]);
+    }
+  }
 
+  protected buildModelPicker(): Promise<Component<any>[]> {
+    return fetch(`${SERVER_BASE_URL}/api/v2/allowed_models`, { headers: getRequestHeaders() }).then((r) => {
+      return r.json();
+    }).then(({ models }: {
+      models: { [id: string]: string }
+    }) => {
+      const currentModel: string = localStorage.getItem("currentModel") ?? Object.keys(models)[0];
+
+      return [
+          new SectionHeaderComponent(t("AI Provider:")),
+          ...(Object.entries(models).map(
+              ([ident, label]) => new ListItem({
+                title: label,
+                icon: String(currentModel === ident),
+                onClick(): any {
+                  localStorage.setItem("currentModel", ident);
+                  back();
+                },
+              })
+          ))
+      ]
+    })
+  }
+
+  protected buildStats(): Promise<Component<any>[]> {
     const limitNames = {
       "total": t("Messages (total):"),
       "voice": t("Voice requests:")

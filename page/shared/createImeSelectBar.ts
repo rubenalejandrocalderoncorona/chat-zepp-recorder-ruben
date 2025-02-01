@@ -10,14 +10,14 @@ export function createImeSelectBar(id: string, useReplace: boolean = true): Acti
       onClick: () => continueToIME("page/InputKeyboardScreen"),
   }];
 
-  if(zeppFeatureLevel >= 3) items.push({
+  if(zeppFeatureLevel >= 3 && !localStorage.getItem("voiceImeDisabled")) items.push({
     icon: "voice",
     onClick: () => continueToIME("page/InputVoiceScreen"),
   });
 
   function continueToIME(url: string) {
     handler({
-      url: localStorage.getItem("privacyStatementRead") ? url : "page/PrivacyWarningScreen",
+      url: localStorage.getItem("privacyStatementRead2") ? url : "page/PrivacyWarningScreen",
       params: JSON.stringify({id: id, text: "", continueUrl: url}),
     })
   }

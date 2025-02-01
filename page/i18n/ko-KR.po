@@ -65,36 +65,6 @@ msgstr "처리 중..."
 msgid "Send"
 msgstr "보내다"
 
-msgid "Before using this app..."
-msgstr "이 앱을 사용하기 전에..."
-
-#, fuzzy
-#| msgid ""
-#| "All data that you provide to this application will be sent to OpenAI to "
-#| "proceed with GPT-3 AI model. Keep in mind that all conversions may be "
-#| "used by OpenAI team to train next generations of ChatGPT. Do not share "
-#| "any personal or secret information with ChatGPT."
-msgid ""
-"All data that you provide to this application will be sent to Google to "
-"proceed with Gemini 1.5 AI model. Keep in mind that all conversions may be "
-"used by Google team to train next generations of Gemini. Do not share any "
-"personal or secret information with Gemini."
-msgstr ""
-"이 애플리케이션에 제공하는 모든 데이터는 Gemini 1.5 AI 모델을 진행하기 위해 "
-"OpenAl로 전송됩니다. 모든 변환은 OpenAl 팀에서 차세대 Gemini를 교육하는 데 사"
-"용될 수 있다는 점을 명심하세요. Gemini와 개인 정보 또는 비밀 정보를 공유하지 "
-"마십시오."
-
-msgid ""
-"Also, keep in mind that Gemini isn't totally perfect, and it can generate "
-"incorrect information, may produce offensive or biased content. Developer of "
-"\"AI-Chat\" only provide access to Gemini, and didn't responsible for any "
-"content that is generated with this tool."
-msgstr ""
-
-msgid "Continue only of you agree with all of this"
-msgstr "이 모든 것에 동의하는 분만 계속하세요"
-
 msgid "Continue"
 msgstr "계속하다"
 

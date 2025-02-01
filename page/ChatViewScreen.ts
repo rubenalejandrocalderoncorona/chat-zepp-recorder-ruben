@@ -25,6 +25,7 @@ class ChatViewScreen extends ListView<ChatViewScreenProps> {
   private lastMessage?: TextComponent;
   private partial?: ChatMessageRecord;
   private chatLocked: boolean = false;
+  private timeoutCount: number = 0;
 
   protected build(): (Component<any> | null)[] {
     setPageBrightTime({brightTime: 60000});
@@ -118,8 +119,13 @@ class ChatViewScreen extends ListView<ChatViewScreenProps> {
       this.lastMessage.updateProps({text: data.content});
       this.serverUpdateLoop();
     }).catch((e) => {
-      console.log(e);
-      this.showError(String(e), e.message != "No internet");
+      if(e.message.startsWith("Request timed out") || this.timeoutCount > 2) {
+        this.timeoutCount += 1;
+        this.serverUpdateLoop();
+      } else {
+        console.log(e);
+        this.showError(String(e), e.message != "No internet");
+      }
     });
   }
 

@@ -39,6 +39,7 @@ class InputKeyboardScreen extends ListView<IMEProps> {
       headers: {
         "Content-Type": "text/plain",
         "Context-ID": this.props.id ?? "0",
+        "X-AI-Model": localStorage.getItem("currentModel") ?? '',
         ...getRequestHeaders(),
       },
     }).then((r) => {

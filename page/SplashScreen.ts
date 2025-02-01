@@ -5,11 +5,11 @@ import {ServerInitResponse} from "./types/ServerResponse";
 import {getText as t} from "@zosx/i18n";
 
 class SplashScreen extends TemplateSplashScreen {
-    protected continueToUrl: string = "page/HomePageScreen";
-
     protected onInit(): Promise<void> {
         let resp: Response;
         this.setStatus(t("Processing..."));
+
+        this.continueToUrl = null;
 
         return fetch(`${SERVER_BASE_URL}/api/v2/init`, {
             headers: getRequestHeaders()
@@ -17,15 +17,20 @@ class SplashScreen extends TemplateSplashScreen {
             resp = r;
             if(resp.status == 0 || resp.status >= 500) {
                 // Offline
+                this.continueToUrl = "page/HomePageScreen";
                 this.continueParam = JSON.stringify({isOnline: false});
                 return null;
             }
             return r.json();
         }).then((body: ServerInitResponse) => {
-            if(body == null) return;
+            if(body == null) {
+                return;
+            }
+
             if(!body.result) {
                 this.setStatus(body.error);
-                throw new Error(body.error);
+                console.log(`E: ${body.error}`);
+                return;
             }
 
             for(const key in body.config) {
@@ -33,9 +38,11 @@ class SplashScreen extends TemplateSplashScreen {
                 localStorage.setItem(key, body.config[key]);
             }
 
+            this.continueToUrl = "page/HomePageScreen";
             this.continueParam = JSON.stringify({isOnline: true, news: body.news});
         }).catch((e) => {
             console.log("err", e);
+            this.continueToUrl = "page/HomePageScreen";
             this.continueParam = JSON.stringify({isOnline: false});
             return null;
         })
