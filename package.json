@@ -14,7 +14,7 @@
     "license": "ISC",
     "devDependencies": {
         "@zeppos/device-types": "^3.0.0",
-        "mzfw": "file:../mzfw/packages/mzfw/mzfw-0.2.1.tgz",
+        "mzfw": "^0.2.2",
         "zosx": "^0.2.4"
     }
 }
