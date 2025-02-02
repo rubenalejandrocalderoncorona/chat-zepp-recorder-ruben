@@ -32,10 +32,19 @@
             "designWidth": 480,
             "platforms": [
                 "active",
+                "active_2",
+                "active_edge",
                 "balance",
                 "bip5unity",
+                "cheetah",
+                "cheetah_pro",
+                "cheetah_square",
+                "falcon",
                 "gtr4",
-                "gtr4le"
+                "gtr4le",
+                "gts4",
+                "trex3",
+                "trex_ultra"
             ],
             "module": {
                 "page": {
@@ -87,16 +96,9 @@
             "targetZeppOS": "1.0.0",
             "designWidth": 480,
             "platforms": [
-                "active_edge",
                 "bip5",
-                "trex_ultra",
-                "cheetah",
-                "cheetah_pro",
-                "cheetah_square",
                 "gtr_mini",
-                "gts4",
                 "gts4mini",
-                "falcon",
                 "band7",
                 "gtr3pro",
                 "gtr3",
