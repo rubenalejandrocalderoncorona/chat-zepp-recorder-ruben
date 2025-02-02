@@ -55,18 +55,18 @@ class SettingsScreen extends ListView<any> {
     return fetch(`${SERVER_BASE_URL}/api/v2/allowed_models`, { headers: getRequestHeaders() }).then((r) => {
       return r.json();
     }).then(({ models }: {
-      models: { [id: string]: string }
+      models: { code: string, label: string }[],
     }) => {
       const currentModel: string = localStorage.getItem("currentModel") ?? Object.keys(models)[0];
 
       return [
           new SectionHeaderComponent(t("AI Provider:")),
-          ...(Object.entries(models).map(
-              ([ident, label]) => new ListItem({
+          ...(models.map(
+              ({ code, label }) => new ListItem({
                 title: label,
-                icon: String(currentModel === ident),
+                icon: String(currentModel === code),
                 onClick(): any {
-                  localStorage.setItem("currentModel", ident);
+                  localStorage.setItem("currentModel", code);
                   back();
                 },
               })
