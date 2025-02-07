@@ -16,7 +16,7 @@ class AboutScreen extends TemplateAboutPage {
   // noinspection JSNonASCIINames
   protected authors: { [name: string]: string; } = {
     "MelianMiko": t("Main developer"),
-    "yarchefisʸᵗ": t("Icon designer"),
+    "yardev": t("Icon designer"),
   };
 
   protected i18n(sourceString: string): string {
