@@ -145,3 +145,12 @@ msgstr "Сообщений (общий):"
 
 msgid "Daily limits:"
 msgstr "Суточный лимит:"
+
+msgid "Advanced:"
+msgstr "Дополнительно:"
+
+msgid "Delete all saved chats"
+msgstr "Удалить все чаты"
+
+msgid "Touch again to confirm"
+msgstr "Коснитесь повторно для подтверждения"

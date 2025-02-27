@@ -9,8 +9,13 @@ import {ServerLimitsResponse} from "./types/ServerResponse";
 import {TextComponent} from "mzfw/device/UiTextComponent";
 import {align} from "@zosx/ui";
 import {back} from "@zosx/router";
+import {showToast} from "@zosx/interaction";
+import {ConfigStorage} from "mzfw/device/Path";
+import {ChatListRecord} from "./types/ConfigStorageTypes";
+import {rmSync} from "@zosx/fs";
 
 class SettingsScreen extends ListView<any> {
+  private deleteChatsClickCounter: number = 3;
   public theme = new AiChatTheme();
 
   protected build(): (Component<any> | null)[] {
@@ -36,6 +41,13 @@ class SettingsScreen extends ListView<any> {
         title: t("Privacy warning..."),
         icon: "privacy",
         onClick: () => push({url: "page/PrivacyWarningScreen"}),
+      }),
+
+      new SectionHeaderComponent(t("Advanced:")),
+      new ListItem({
+        title: t("Delete all saved chats"),
+        icon: "chat",
+        onClick: () => this.onDeleteChats(),
       }),
     ]
   }
@@ -102,6 +114,29 @@ class SettingsScreen extends ListView<any> {
         }),
       ]
     })
+  }
+
+  private onDeleteChats() {
+    if(this.deleteChatsClickCounter > 0) {
+      showToast({ content: t("Touch again to confirm") });
+      this.deleteChatsClickCounter--;
+
+      return;
+    }
+
+    // Load chats list
+    const chatList = new ConfigStorage("chat_list.json");
+    const chats: ChatListRecord[] = chatList.getItem("chats") ?? [];
+
+    // Delete files
+    for(const record of chats) {
+      rmSync(`${record.id}.json`);
+    }
+
+    // Clean chats list
+    chatList.setItem("chats", []);
+    chatList.writeChanges();
+    back();
   }
 }
 

@@ -123,3 +123,13 @@ msgstr ""
 
 msgid "Daily limits:"
 msgstr ""
+
+
+msgid "Advanced:"
+msgstr ""
+
+msgid "Delete all saved chats"
+msgstr ""
+
+msgid "Touch again to confirm"
+msgstr ""

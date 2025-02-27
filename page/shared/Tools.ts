@@ -8,6 +8,7 @@ export type DeviceInfoBundle = {
 
 export function getRequestHeaders(): {[key: string]: string} {
   return {
+    "X-AI-Model": localStorage.getItem("currentModel") ?? '',
     "Authorization": `Token ${getTbaToken(SERVER_AUTH_KEY)}`,
     "Device": `${DeviceInfo.deviceName};${localStorage.getItem("device_id") ?? "0"}`
   }
