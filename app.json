@@ -6,7 +6,7 @@
         "appType": "app",
         "version": {
             "code": 1,
-            "name": "2.3.1"
+            "name": "2.4.0"
         },
         "icon": "icon.png",
         "vender": "zepp",
@@ -36,6 +36,7 @@
                 "active_edge",
                 "balance",
                 "bip5unity",
+		"bip6",
                 "cheetah",
                 "cheetah_pro",
                 "cheetah_square",
