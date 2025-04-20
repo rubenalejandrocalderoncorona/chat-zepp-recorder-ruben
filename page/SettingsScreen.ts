@@ -13,6 +13,7 @@ import {showToast} from "@zosx/interaction";
 import {ConfigStorage} from "mzfw/device/Path";
 import {ChatListRecord} from "./types/ConfigStorageTypes";
 import {rmSync} from "@zosx/fs";
+import {renderAiModelPicker} from "./components/AiModelPicker";
 
 class SettingsScreen extends ListView<any> {
   private deleteChatsClickCounter: number = 3;
@@ -55,36 +56,12 @@ class SettingsScreen extends ListView<any> {
   protected buildMore(page: number): Promise<Component<any>[]> {
     switch (page) {
       case 0:
-        return this.buildModelPicker();
+        return renderAiModelPicker(back);
       case 1:
         return this.buildStats();
       default:
         return Promise.resolve([]);
     }
-  }
-
-  protected buildModelPicker(): Promise<Component<any>[]> {
-    return fetch(`${SERVER_BASE_URL}/api/v2/allowed_models`, { headers: getRequestHeaders() }).then((r) => {
-      return r.json();
-    }).then(({ models }: {
-      models: { code: string, label: string }[],
-    }) => {
-      const currentModel: string = localStorage.getItem("currentModel") ?? Object.keys(models)[0];
-
-      return [
-          new SectionHeaderComponent(t("AI Provider:")),
-          ...(models.map(
-              ({ code, label }) => new ListItem({
-                title: label,
-                icon: String(currentModel === code),
-                onClick(): any {
-                  localStorage.setItem("currentModel", code);
-                  back();
-                },
-              })
-          ))
-      ]
-    })
   }
 
   protected buildStats(): Promise<Component<any>[]> {

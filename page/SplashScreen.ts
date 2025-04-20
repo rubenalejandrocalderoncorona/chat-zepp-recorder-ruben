@@ -3,6 +3,7 @@ import {SERVER_BASE_URL} from "./shared/constants";
 import {getRequestHeaders} from "./shared/Tools";
 import {ServerInitResponse} from "./types/ServerResponse";
 import {getText as t} from "@zosx/i18n";
+import {ConfigStorage} from "mzfw/device/Path";
 
 class SplashScreen extends TemplateSplashScreen {
     protected onInit(): Promise<void> {
@@ -38,7 +39,12 @@ class SplashScreen extends TemplateSplashScreen {
                 localStorage.setItem(key, body.config[key]);
             }
 
-            this.continueToUrl = "page/HomePageScreen";
+            (localStorage as ConfigStorage).writeChanges();
+
+            this.continueToUrl = localStorage.getItem("needChangeModel")
+                ? "page/SettingsModelScreen"
+                : "page/HomePageScreen";
+
             this.continueParam = JSON.stringify({isOnline: true, news: body.news});
         }).catch((e) => {
             console.log("err", e);

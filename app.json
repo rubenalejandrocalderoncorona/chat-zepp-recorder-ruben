@@ -59,6 +59,7 @@
                         "page/InputVoiceScreen",
                         "page/SettingsScreen",
                         "page/SettingsKeyboardScreen",
+                        "page/SettingsModelScreen",
                         "page/SettingsFontSizeScreen",
                         "page/AboutScreen",
                         "page/DonateScreen"
