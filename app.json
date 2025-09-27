@@ -6,7 +6,7 @@
         "appType": "app",
         "version": {
             "code": 1,
-            "name": "2.5.0"
+            "name": "2.6.0"
         },
         "icon": "icon.png",
         "vender": "zepp",
@@ -37,6 +37,7 @@
                 "active_edge",
                 "balance",
 		"balance2",
+		"balance2_xt",
                 "bip5unity",
 		"bip6",
                 "cheetah",
@@ -47,6 +48,8 @@
                 "gtr4le",
                 "gts4",
                 "trex3",
+                "trex3pro44",
+                "trex3pro48",
                 "trex_ultra"
             ],
             "module": {
