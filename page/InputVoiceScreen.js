@@ -1,7 +1,6 @@
 import { BaseCompositor } from "mzfw/device/UiCompositor";
 import { osImport } from "@zosx/utils";
 import { ListView } from "mzfw/device/UiListView";
-import { statSync } from "@zosx/fs";
 import { ImageComponent } from "mzfw/device/UiNativeComponents/UiImageComponent";
 import { TextComponent } from "mzfw/device/UiTextComponent";
 import { getText as t } from "@zosx/i18n";
@@ -72,18 +71,7 @@ class InputVoiceScreen extends ListView {
     this.recorder.stop();
     clearTimeout(this.recorderTimeout);
     this.recorder = null;
-    this.updateView(t("Saving..."), "loading");
-    try {
-      const stat = statSync({ path: this.currentFile });
-      if (!stat || stat.size === 0) {
-        this.updateView("Recording failed: empty file", "warning");
-        return;
-      }
-    } catch (_) {
-      this.updateView("Recording failed: file not found", "warning");
-      return;
-    }
-    this.updateView(`Saved: ${this.currentFile}`, "loading");
+    this.updateView(t("Saved!"), "loading");
     replace({ url: "page/VoiceRecordingsScreen" });
   }
   updateView(message, icon = "warning") {

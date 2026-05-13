@@ -4,7 +4,6 @@ import {osImport} from "@zosx/utils";
 import {ZeppMediaLibrary, ZeppMediaRecorder} from "./types/ZosMediaTypes";
 import {ListView} from "mzfw/device/UiListView";
 import {Component} from "mzfw/device/UiComponent";
-import {statSync} from "@zosx/fs";
 import {ImageComponent} from "mzfw/device/UiNativeComponents/UiImageComponent";
 import {TextComponent} from "mzfw/device/UiTextComponent";
 import {getText as t} from "@zosx/i18n";
@@ -56,7 +55,6 @@ class InputVoiceScreen extends ListView<IMEProps> {
 
   private startRecording() {
     const filename = `rec_${Date.now()}.opus`;
-    // data:// prefix is required by the ZeppOS media API
     this.currentFile = `data://${filename}`;
 
     this.recorder = media.create(media.id.RECORDER);
@@ -90,21 +88,7 @@ class InputVoiceScreen extends ListView<IMEProps> {
     clearTimeout(this.recorderTimeout);
     this.recorder = null;
 
-    this.updateView(t("Saving..."), "loading");
-
-    // Verify file was written (statSync uses the data:// path)
-    try {
-      const stat = statSync({path: this.currentFile});
-      if (!stat || stat.size === 0) {
-        this.updateView("Recording failed: empty file", "warning");
-        return;
-      }
-    } catch(_) {
-      this.updateView("Recording failed: file not found", "warning");
-      return;
-    }
-
-    this.updateView(`Saved: ${this.currentFile}`, "loading");
+    this.updateView(t("Saved!"), "loading");
     replace({url: "page/VoiceRecordingsScreen"});
   }
 

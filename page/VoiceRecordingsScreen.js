@@ -13,9 +13,11 @@ const HEADER_H = 64;
 function getRecordings() {
   try {
     const files = readdirSync({ path: "data://" });
+    console.log("readdirSync result:", JSON.stringify(files));
     if (!files) return [];
     return files.filter((f) => f.endsWith(".opus")).sort().reverse();
-  } catch (_) {
+  } catch (e) {
+    console.log("readdirSync error:", e);
     return [];
   }
 }
@@ -32,6 +34,7 @@ Page({
   build() {
     const self = this;
     const recordings = getRecordings();
+    console.log("recordings found:", recordings.length, JSON.stringify(recordings));
     this.state.rows = recordings;
 
     createWidget(widget.FILL_RECT, { x: 0, y: 0, w: W, h: H, color: 0x000000 });
@@ -62,7 +65,7 @@ Page({
 
     this.state.statusWidget = createWidget(widget.TEXT, {
       x: 74, y: 14, w: W - 150, h: 36,
-      text: "Tap a recording",
+      text: recordings.length + " rec(s)",
       text_size: 16,
       color: 0xaaaaaa,
       align_h: align.LEFT,
@@ -176,6 +179,7 @@ Page({
     const self = this;
 
     player.addEventListener(player.event.PREPARE, function (result) {
+      console.log("PREPARE result:", result, "file:", filepath);
       if (result) {
         player.start();
         self.state.playingFile = filepath;
@@ -189,6 +193,7 @@ Page({
     });
 
     player.addEventListener(player.event.COMPLETE, function () {
+      console.log("COMPLETE:", filepath);
       player.stop();
       self.state.player = null;
       self.state.playingFile = null;
@@ -199,7 +204,7 @@ Page({
     this.state.player = player;
     player.setSource(player.source.FILE, { file: filepath });
     player.prepare();
-    this.updateStatus("Loading...");
+    this.updateStatus("Loading: " + filepath.replace("data://", ""));
   },
 
   onDestroy() {
