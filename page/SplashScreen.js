@@ -4,11 +4,6 @@ import { getRequestHeaders } from "./shared/Tools";
 import { getText as t } from "@zosx/i18n";
 class SplashScreen extends TemplateSplashScreen {
   onInit() {
-    if (!SERVER_BASE_URL) {
-      this.continueToUrl = "page/HomePageScreen";
-      this.continueParam = JSON.stringify({ isOnline: true, news: null });
-      return Promise.resolve();
-    }
     let resp;
     this.setStatus(t("Processing..."));
     this.continueToUrl = null;

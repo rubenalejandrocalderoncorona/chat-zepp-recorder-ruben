@@ -1,4 +1,6 @@
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
@@ -14,6 +16,7 @@ var __spreadValues = (a, b) => {
     }
   return a;
 };
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 import { BaseCompositor } from "mzfw/device/UiCompositor";
 import { osImport } from "@zosx/utils";
 import { ListView } from "mzfw/device/UiListView";
@@ -27,6 +30,7 @@ import { getRequestHeaders } from "./shared/Tools";
 import { saveNewMessageToFile } from "./shared/saveNewMessageToFile";
 import { replace } from "@zosx/router";
 import { align } from "@zosx/ui";
+import { getSystemInfo } from "@zosx/settings";
 import { resetPageBrightTime, setPageBrightTime } from "@zosx/display";
 import { AiChatTheme } from "./shared/AiChatTheme";
 const media = osImport("@zos/media", null);
@@ -69,11 +73,33 @@ class InputVoiceScreen extends ListView {
     resetPageBrightTime();
   }
   /**
-   * Start recording immediately (no server check)
+   * Validate limits and start recording
    */
   performRender() {
     super.performRender();
-    this.startRecording();
+    fetch(`${SERVER_BASE_URL}/api/v2/voice/prepare`, {
+      headers: __spreadProps(__spreadValues({}, getRequestHeaders()), {
+        "Device-Firmware": getSystemInfo().firmwareVersion
+      })
+    }).then((r) => {
+      if (r.status != 200 && r.status != 401) {
+        this.onRequestError(null, r.status);
+        return null;
+      }
+      return r.json();
+    }).then((d) => {
+      if (!d) return;
+      if (!d.result) {
+        this.updateView(t(d.error));
+        if (d.requiredFirmware)
+          this.viewMinFirmware(d.requiredFirmware);
+        return;
+      }
+      this.startRecording();
+    }).catch((e) => {
+      console.log(e);
+      this.updateView(t("Unknown error:") + e.toString());
+    });
   }
   /**
    * Start voice recording
@@ -108,13 +134,7 @@ class InputVoiceScreen extends ListView {
     this.recorder.stop();
     clearTimeout(this.recorderTimeout);
     this.recorder = null;
-    try {
-      const stat = statSync({ path: "voice.opus" });
-      const kb = stat ? (stat.size / 1024).toFixed(1) : "0";
-      this.updateView(`Mic OK! Recorded ${kb} KB`, "true");
-    } catch (_) {
-      this.updateView("Recorded (file check failed)", "true");
-    }
+    this.sendRequest();
   }
   /**
    * Will send recorded audio file to server and create new dialog
