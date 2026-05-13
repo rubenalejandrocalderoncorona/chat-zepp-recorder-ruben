@@ -3,11 +3,19 @@ import { ListItem, ListView, SectionHeaderComponent } from "mzfw/device/UiListVi
 import { osImport } from "@zosx/utils";
 import { TextComponent } from "mzfw/device/UiTextComponent";
 import { align } from "@zosx/ui";
-import { ConfigStorage } from "mzfw/device/Path";
+import { readdirSync } from "@zosx/fs";
 import { AiChatTheme } from "./shared/AiChatTheme";
 import { push } from "@zosx/router";
 const media = osImport("@zos/media", null);
-const RECORDINGS_STORAGE = "recordings_list.json";
+function getRecordings() {
+  try {
+    const files = readdirSync({ path: "data://" });
+    if (!files) return [];
+    return files.filter((f) => f.endsWith(".opus")).sort().reverse();
+  } catch (_) {
+    return [];
+  }
+}
 class VoiceRecordingsScreen extends ListView {
   constructor() {
     super(...arguments);
@@ -20,9 +28,7 @@ class VoiceRecordingsScreen extends ListView {
     });
   }
   build() {
-    var _a;
-    const storage = new ConfigStorage(RECORDINGS_STORAGE);
-    const files = (_a = storage.getItem("files")) != null ? _a : [];
+    const files = getRecordings();
     const items = [this.statusText];
     if (files.length === 0) {
       items.push(new TextComponent({
@@ -30,14 +36,15 @@ class VoiceRecordingsScreen extends ListView {
         alignH: align.CENTER_H,
         marginV: 16
       }));
-      return items;
-    }
-    items.push(new SectionHeaderComponent(`${files.length} recording(s)`));
-    for (const file of files) {
-      items.push(new ListItem({
-        title: file,
-        onClick: () => this.playFile(file)
-      }));
+    } else {
+      items.push(new SectionHeaderComponent(`${files.length} recording(s)`));
+      for (const file of files) {
+        const filepath = `data://${file}`;
+        items.push(new ListItem({
+          title: file,
+          onClick: () => this.playFile(filepath)
+        }));
+      }
     }
     items.push(new ListItem({
       title: "+ New recording",
@@ -45,7 +52,7 @@ class VoiceRecordingsScreen extends ListView {
     }));
     return items;
   }
-  playFile(file) {
+  playFile(filepath) {
     if (this.player) {
       try {
         this.player.stop();
@@ -54,21 +61,33 @@ class VoiceRecordingsScreen extends ListView {
       }
       this.player = null;
     }
-    this.statusText.updateProps({ text: `Playing: ${file}` });
+    const displayName = filepath.replace("data://", "");
+    this.statusText.updateProps({ text: `Loading: ${displayName}` });
     const player = media.create(media.id.PLAYER);
     this.player = player;
-    player.addEventListener(player.event.PREPARE, () => {
-      player.start();
+    player.addEventListener(player.event.PREPARE, (result) => {
+      if (result) {
+        this.statusText.updateProps({ text: `Playing: ${displayName}` });
+        player.start();
+      } else {
+        this.statusText.updateProps({ text: `Failed to load: ${displayName}` });
+        try {
+          player.release();
+        } catch (_) {
+        }
+        if (this.player === player) this.player = null;
+      }
     });
     player.addEventListener(player.event.COMPLETE, () => {
-      this.statusText.updateProps({ text: `Done: ${file}` });
+      this.statusText.updateProps({ text: `Done: ${displayName}` });
       try {
+        player.stop();
         player.release();
       } catch (_) {
       }
       if (this.player === player) this.player = null;
     });
-    player.setSource(player.source.FILE, { file });
+    player.setSource(player.source.FILE, { file: filepath });
     player.prepare();
   }
   performDestroy() {

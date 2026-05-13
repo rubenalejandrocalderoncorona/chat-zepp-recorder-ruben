@@ -5,12 +5,21 @@ import {osImport} from "@zosx/utils";
 import {ZeppMediaLibrary, ZeppMediaPlayer} from "./types/ZosMediaTypes";
 import {TextComponent} from "mzfw/device/UiTextComponent";
 import {align} from "@zosx/ui";
-import {ConfigStorage} from "mzfw/device/Path";
+import {readdirSync} from "@zosx/fs";
 import {AiChatTheme} from "./shared/AiChatTheme";
 import {push} from "@zosx/router";
 
 const media = osImport<ZeppMediaLibrary>("@zos/media", null);
-const RECORDINGS_STORAGE = "recordings_list.json";
+
+function getRecordings(): string[] {
+  try {
+    const files = readdirSync({path: "data://"}) as string[];
+    if (!files) return [];
+    return files.filter((f) => f.endsWith(".opus")).sort().reverse();
+  } catch(_) {
+    return [];
+  }
+}
 
 class VoiceRecordingsScreen extends ListView<any> {
   public theme = new AiChatTheme();
@@ -23,9 +32,7 @@ class VoiceRecordingsScreen extends ListView<any> {
   });
 
   protected build(): (Component<any> | null)[] {
-    const storage = new ConfigStorage(RECORDINGS_STORAGE);
-    const files: string[] = storage.getItem("files") ?? [];
-
+    const files = getRecordings();
     const items: (Component<any> | null)[] = [this.statusText];
 
     if (files.length === 0) {
@@ -34,16 +41,15 @@ class VoiceRecordingsScreen extends ListView<any> {
         alignH: align.CENTER_H,
         marginV: 16,
       }));
-      return items;
-    }
-
-    items.push(new SectionHeaderComponent(`${files.length} recording(s)`));
-
-    for (const file of files) {
-      items.push(new ListItem({
-        title: file,
-        onClick: () => this.playFile(file),
-      }));
+    } else {
+      items.push(new SectionHeaderComponent(`${files.length} recording(s)`));
+      for (const file of files) {
+        const filepath = `data://${file}`;
+        items.push(new ListItem({
+          title: file,
+          onClick: () => this.playFile(filepath),
+        }));
+      }
     }
 
     items.push(new ListItem({
@@ -54,28 +60,36 @@ class VoiceRecordingsScreen extends ListView<any> {
     return items;
   }
 
-  private playFile(file: string) {
+  private playFile(filepath: string) {
     if (this.player) {
       try { this.player.stop(); this.player.release(); } catch(_) {}
       this.player = null;
     }
 
-    this.statusText.updateProps({text: `Playing: ${file}`});
+    const displayName = filepath.replace("data://", "");
+    this.statusText.updateProps({text: `Loading: ${displayName}`});
 
     const player = media.create(media.id.PLAYER) as ZeppMediaPlayer;
     this.player = player;
 
-    player.addEventListener(player.event.PREPARE, () => {
-      player.start();
+    player.addEventListener(player.event.PREPARE, (result: any) => {
+      if (result) {
+        this.statusText.updateProps({text: `Playing: ${displayName}`});
+        player.start();
+      } else {
+        this.statusText.updateProps({text: `Failed to load: ${displayName}`});
+        try { player.release(); } catch(_) {}
+        if (this.player === player) this.player = null;
+      }
     });
 
     player.addEventListener(player.event.COMPLETE, () => {
-      this.statusText.updateProps({text: `Done: ${file}`});
-      try { player.release(); } catch(_) {}
+      this.statusText.updateProps({text: `Done: ${displayName}`});
+      try { player.stop(); player.release(); } catch(_) {}
       if (this.player === player) this.player = null;
     });
 
-    player.setSource(player.source.FILE, {file});
+    player.setSource(player.source.FILE, {file: filepath});
     player.prepare();
   }
 

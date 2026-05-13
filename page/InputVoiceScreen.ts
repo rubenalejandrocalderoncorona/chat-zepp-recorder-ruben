@@ -4,7 +4,7 @@ import {osImport} from "@zosx/utils";
 import {ZeppMediaLibrary, ZeppMediaRecorder} from "./types/ZosMediaTypes";
 import {ListView} from "mzfw/device/UiListView";
 import {Component} from "mzfw/device/UiComponent";
-import {rmSync, statSync} from "@zosx/fs";
+import {statSync} from "@zosx/fs";
 import {ImageComponent} from "mzfw/device/UiNativeComponents/UiImageComponent";
 import {TextComponent} from "mzfw/device/UiTextComponent";
 import {getText as t} from "@zosx/i18n";
@@ -14,10 +14,8 @@ import {align} from "@zosx/ui";
 import {resetPageBrightTime, setPageBrightTime} from "@zosx/display";
 import TimeoutID = setTimeout.TimeoutID;
 import {AiChatTheme} from "./shared/AiChatTheme";
-import {ConfigStorage} from "mzfw/device/Path";
 
 const media = osImport<ZeppMediaLibrary>("@zos/media", null);
-const RECORDINGS_STORAGE = "recordings_list.json";
 
 class InputVoiceScreen extends ListView<IMEProps> {
   public theme = new AiChatTheme();
@@ -57,10 +55,9 @@ class InputVoiceScreen extends ListView<IMEProps> {
   }
 
   private startRecording() {
-    // Unique filename per recording using timestamp
-    this.currentFile = `rec_${Date.now()}.opus`;
-
-    try { rmSync("voice.opus"); } catch(_) {}
+    const filename = `rec_${Date.now()}.opus`;
+    // data:// prefix is required by the ZeppOS media API
+    this.currentFile = `data://${filename}`;
 
     this.recorder = media.create(media.id.RECORDER);
     this.recorder.setFormat(media.codec.OPUS, {target_file: this.currentFile});
@@ -95,7 +92,7 @@ class InputVoiceScreen extends ListView<IMEProps> {
 
     this.updateView(t("Saving..."), "loading");
 
-    // Verify file was written
+    // Verify file was written (statSync uses the data:// path)
     try {
       const stat = statSync({path: this.currentFile});
       if (!stat || stat.size === 0) {
@@ -107,14 +104,7 @@ class InputVoiceScreen extends ListView<IMEProps> {
       return;
     }
 
-    // Append filename to persistent list
-    const storage = new ConfigStorage(RECORDINGS_STORAGE);
-    const list: string[] = storage.getItem("files") ?? [];
-    list.push(this.currentFile);
-    storage.setItem("files", list);
-    storage.writeChanges();
-
-    // Go to recordings list
+    this.updateView(`Saved: ${this.currentFile}`, "loading");
     replace({url: "page/VoiceRecordingsScreen"});
   }
 

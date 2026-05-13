@@ -1,7 +1,7 @@
 import { BaseCompositor } from "mzfw/device/UiCompositor";
 import { osImport } from "@zosx/utils";
 import { ListView } from "mzfw/device/UiListView";
-import { rmSync, statSync } from "@zosx/fs";
+import { statSync } from "@zosx/fs";
 import { ImageComponent } from "mzfw/device/UiNativeComponents/UiImageComponent";
 import { TextComponent } from "mzfw/device/UiTextComponent";
 import { getText as t } from "@zosx/i18n";
@@ -10,9 +10,7 @@ import { replace } from "@zosx/router";
 import { align } from "@zosx/ui";
 import { resetPageBrightTime, setPageBrightTime } from "@zosx/display";
 import { AiChatTheme } from "./shared/AiChatTheme";
-import { ConfigStorage } from "mzfw/device/Path";
 const media = osImport("@zos/media", null);
-const RECORDINGS_STORAGE = "recordings_list.json";
 class InputVoiceScreen extends ListView {
   constructor() {
     super(...arguments);
@@ -47,11 +45,8 @@ class InputVoiceScreen extends ListView {
     this.startRecording();
   }
   startRecording() {
-    this.currentFile = `rec_${Date.now()}.opus`;
-    try {
-      rmSync("voice.opus");
-    } catch (_) {
-    }
+    const filename = `rec_${Date.now()}.opus`;
+    this.currentFile = `data://${filename}`;
     this.recorder = media.create(media.id.RECORDER);
     this.recorder.setFormat(media.codec.OPUS, { target_file: this.currentFile });
     this.recorder.start();
@@ -73,7 +68,6 @@ class InputVoiceScreen extends ListView {
     this.addComponent(button);
   }
   stopRecording() {
-    var _a;
     if (!this.recorder) return;
     this.recorder.stop();
     clearTimeout(this.recorderTimeout);
@@ -89,11 +83,7 @@ class InputVoiceScreen extends ListView {
       this.updateView("Recording failed: file not found", "warning");
       return;
     }
-    const storage = new ConfigStorage(RECORDINGS_STORAGE);
-    const list = (_a = storage.getItem("files")) != null ? _a : [];
-    list.push(this.currentFile);
-    storage.setItem("files", list);
-    storage.writeChanges();
+    this.updateView(`Saved: ${this.currentFile}`, "loading");
     replace({ url: "page/VoiceRecordingsScreen" });
   }
   updateView(message, icon = "warning") {
