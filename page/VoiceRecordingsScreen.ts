@@ -1,110 +1,210 @@
-import {BaseCompositor} from "mzfw/device/UiCompositor";
-import {ListItem, ListView, SectionHeaderComponent} from "mzfw/device/UiListView";
-import {Component} from "mzfw/device/UiComponent";
-import {osImport} from "@zosx/utils";
-import {ZeppMediaLibrary, ZeppMediaPlayer} from "./types/ZosMediaTypes";
-import {TextComponent} from "mzfw/device/UiTextComponent";
-import {align} from "@zosx/ui";
-import {readdirSync} from "@zosx/fs";
-import {AiChatTheme} from "./shared/AiChatTheme";
-import {push} from "@zosx/router";
+// This screen uses raw ZeppOS Page API (no mzfw) to ensure reliable media playback.
+// The mzfw ListView wrapper caused the player to break after first playback.
+import { create, id } from "@zos/media";
+import { readdirSync } from "@zos/fs";
+import { createWidget, widget, align, prop, text_style } from "@zos/ui";
+import { getDeviceInfo } from "@zos/device";
+import { push, back } from "@zos/router";
 
-const media = osImport<ZeppMediaLibrary>("@zos/media", null);
+const device = getDeviceInfo();
+const W = device.width;
+const H = device.height;
+const ROW_H = 80;
+const HEADER_H = 64;
 
 function getRecordings(): string[] {
   try {
     const files = readdirSync({path: "data://"}) as string[];
     if (!files) return [];
     return files.filter((f) => f.endsWith(".opus")).sort().reverse();
-  } catch(_) {
+  } catch (_) {
     return [];
   }
 }
 
-class VoiceRecordingsScreen extends ListView<any> {
-  public theme = new AiChatTheme();
+Page({
+  state: {
+    player: null as any,
+    playingFile: null as string | null,
+    statusWidget: null as any,
+    listWidget: null as any,
+    rows: [] as string[],
+  },
 
-  private player: ZeppMediaPlayer | null = null;
-  private statusText = new TextComponent({
-    text: "Tap a recording to play",
-    alignH: align.CENTER_H,
-    marginV: 8,
-  });
+  build() {
+    const self = this;
+    const recordings = getRecordings();
+    this.state.rows = recordings;
 
-  protected build(): (Component<any> | null)[] {
-    const files = getRecordings();
-    const items: (Component<any> | null)[] = [this.statusText];
+    createWidget(widget.FILL_RECT, {x: 0, y: 0, w: W, h: H, color: 0x000000});
+    createWidget(widget.FILL_RECT, {x: 0, y: 0, w: W, h: HEADER_H, color: 0x111111});
 
-    if (files.length === 0) {
-      items.push(new TextComponent({
+    createWidget(widget.BUTTON, {
+      x: 12, y: 12, w: 60, h: 40,
+      text: "<",
+      text_size: 22,
+      normal_color: 0x222222,
+      press_color: 0x444444,
+      radius: 8,
+      click_func() { self.stopPlayer(); back(); },
+    });
+
+    createWidget(widget.BUTTON, {
+      x: W - 76, y: 12, w: 64, h: 40,
+      text: "+ Rec",
+      text_size: 14,
+      normal_color: 0x1a4a1a,
+      press_color: 0x2a6a2a,
+      radius: 8,
+      click_func() {
+        self.stopPlayer();
+        push({url: "page/InputVoiceScreen", param: JSON.stringify({id: "0", text: ""})});
+      },
+    });
+
+    this.state.statusWidget = createWidget(widget.TEXT, {
+      x: 74, y: 14, w: W - 150, h: 36,
+      text: "Tap a recording",
+      text_size: 16,
+      color: 0xaaaaaa,
+      align_h: align.LEFT,
+      align_v: align.CENTER_V,
+      text_style: text_style.NONE,
+    });
+
+    if (recordings.length === 0) {
+      createWidget(widget.TEXT, {
+        x: 0, y: H / 2 - 20, w: W, h: 40,
         text: "No recordings yet",
-        alignH: align.CENTER_H,
-        marginV: 16,
-      }));
-    } else {
-      items.push(new SectionHeaderComponent(`${files.length} recording(s)`));
-      for (const file of files) {
-        const filepath = `data://${file}`;
-        items.push(new ListItem({
-          title: file,
-          onClick: () => this.playFile(filepath),
-        }));
-      }
+        text_size: 20,
+        color: 0x666666,
+        align_h: align.CENTER_H,
+        align_v: align.CENTER_V,
+        text_style: text_style.NONE,
+      });
+      return;
     }
 
-    items.push(new ListItem({
-      title: "+ New recording",
-      onClick: () => push({url: "page/InputVoiceScreen", param: JSON.stringify({id: "0", text: ""})}),
-    }));
+    this.state.listWidget = createWidget(widget.SCROLL_LIST, {
+      x: 0,
+      y: HEADER_H + 4,
+      w: W,
+      h: H - HEADER_H - 4,
+      item_space: 4,
+      item_count: recordings.length,
+      item_config: [{
+        type_id: 0,
+        item_height: ROW_H,
+        item_bg_color: 0x111111,
+        item_bg_radius: 8,
+        item_click_func(_widget: any, index: number) {
+          const filepath = "data://" + self.state.rows[index];
+          if (self.state.playingFile === filepath) {
+            self.stopPlayer();
+            self.updateStatus("Stopped");
+          } else {
+            self.playFile(filepath);
+          }
+        },
+        sub_widgets: [{
+          type: widget.TEXT,
+          attr: {
+            x: 14, y: 10, w: W - 28, h: 30,
+            key: "name_text",
+            text: "",
+            text_size: 17,
+            color: 0xffffff,
+            align_h: align.LEFT,
+            align_v: align.CENTER_V,
+            text_style: text_style.NONE,
+          },
+        }, {
+          type: widget.TEXT,
+          attr: {
+            x: 14, y: 44, w: W - 28, h: 24,
+            key: "status_text",
+            text: "",
+            text_size: 14,
+            color: 0x44aa44,
+            align_h: align.LEFT,
+            align_v: align.CENTER_V,
+            text_style: text_style.NONE,
+          },
+        }],
+      }],
+      data_array: recordings.map((f) => ({
+        type_id: 0,
+        name_text: f,
+        status_text: "",
+      })),
+    });
+  },
 
-    return items;
-  }
+  updateStatus(msg: string) {
+    if (this.state.statusWidget) {
+      this.state.statusWidget.setProperty(prop.TEXT, msg);
+    }
+  },
 
-  private stopCurrentPlayer() {
-    if (!this.player) return;
-    const p = this.player;
-    this.player = null;
-    try { p.stop(); } catch(_) {}
-    // Do NOT call release() — it invalidates the media engine and breaks
-    // subsequent player instances on the same page lifecycle
-  }
+  refreshList() {
+    const lw = this.state.listWidget;
+    if (!lw) return;
+    lw.setProperty(prop.ITEM_COUNT, this.state.rows.length);
+    for (let i = 0; i < this.state.rows.length; i++) {
+      const filepath = "data://" + this.state.rows[i];
+      lw.setProperty(prop.UPDATE_DATA, {
+        index: i,
+        item_data: {
+          name_text: this.state.rows[i],
+          status_text: this.state.playingFile === filepath ? "> Playing" : "",
+        },
+      });
+    }
+  },
 
-  private playFile(filepath: string) {
-    this.stopCurrentPlayer();
+  stopPlayer() {
+    if (this.state.player) {
+      this.state.player.stop();
+      this.state.player = null;
+      this.state.playingFile = null;
+      this.refreshList();
+    }
+  },
 
-    const displayName = filepath.replace("data://", "");
-    this.statusText.updateProps({text: `Loading: ${displayName}`});
+  playFile(filepath: string) {
+    this.stopPlayer();
 
-    const player = media.create(media.id.PLAYER) as ZeppMediaPlayer;
-    this.player = player;
+    const player = create(id.PLAYER);
+    const self = this;
 
-    player.addEventListener(player.event.PREPARE, (result: any) => {
-      if (this.player !== player) return;
+    player.addEventListener(player.event.PREPARE, function (result: any) {
       if (result) {
-        this.statusText.updateProps({text: `Playing: ${displayName}`});
         player.start();
+        self.state.playingFile = filepath;
+        self.updateStatus("Playing: " + filepath.replace("data://", ""));
+        self.refreshList();
       } else {
-        this.statusText.updateProps({text: `Failed to load: ${displayName}`});
-        this.player = null;
-        try { player.stop(); } catch(_) {}
+        self.updateStatus("Failed: " + filepath.replace("data://", ""));
+        self.state.player = null;
+        self.state.playingFile = null;
       }
     });
 
-    player.addEventListener(player.event.COMPLETE, () => {
-      if (this.player !== player) return;
-      this.statusText.updateProps({text: `Done: ${displayName}`});
-      this.player = null;
-      try { player.stop(); } catch(_) {}
+    player.addEventListener(player.event.COMPLETE, function () {
+      player.stop();
+      self.state.player = null;
+      self.state.playingFile = null;
+      self.updateStatus("Done");
+      self.refreshList();
     });
 
+    this.state.player = player;
     player.setSource(player.source.FILE, {file: filepath});
     player.prepare();
-  }
+    this.updateStatus("Loading...");
+  },
 
-  performDestroy() {
-    super.performDestroy();
-    this.stopCurrentPlayer();
-  }
-}
-
-Page(BaseCompositor.makePage(new VoiceRecordingsScreen({})));
+  onDestroy() {
+    this.stopPlayer();
+  },
+});
