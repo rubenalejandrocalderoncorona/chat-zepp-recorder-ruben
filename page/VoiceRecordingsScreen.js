@@ -23,11 +23,39 @@ function getRecordings() {
 
 Page({
   state: {
+    // Single player instance created once in onInit, reused for every play
     player: null,
-    playingFile: null,
+    currentIndex: -1,
     statusWidget: null,
     rowWidgets: [],
     rows: [],
+  },
+
+  onInit() {
+    // Create the player once and keep it alive for the whole page lifecycle
+    const player = create(id.PLAYER);
+    const self = this;
+
+    player.addEventListener(player.event.PREPARE, function (result) {
+      if (result) {
+        player.start();
+        const file = self.state.rows[self.state.currentIndex] || "";
+        self.updateStatus("Playing: " + file);
+        self.updateRowBtn(self.state.currentIndex, "■ Stop", 0x3a1a1a);
+      } else {
+        self.updateStatus("Failed to load");
+        self.updateRowBtn(self.state.currentIndex, "▶ Play", 0x1a3a1a);
+        self.state.currentIndex = -1;
+      }
+    });
+
+    player.addEventListener(player.event.COMPLETE, function () {
+      self.updateStatus(self.state.rows.length + " recording(s)");
+      self.updateRowBtn(self.state.currentIndex, "▶ Play", 0x1a3a1a);
+      self.state.currentIndex = -1;
+    });
+
+    this.state.player = player;
   },
 
   build() {
@@ -35,7 +63,6 @@ Page({
     const recordings = getRecordings();
     this.state.rows = recordings;
 
-    // Header bar
     createWidget(widget.FILL_RECT, { x: 0, y: STATUS_BAR_H, w: W, h: HEADER_H, color: 0x111111 });
 
     createWidget(widget.BUTTON, {
@@ -45,7 +72,7 @@ Page({
       normal_color: 0x222222,
       press_color: 0x444444,
       radius: 8,
-      click_func() { self.stopPlayer(); back(); },
+      click_func() { self.stopCurrent(); back(); },
     });
 
     createWidget(widget.BUTTON, {
@@ -56,7 +83,7 @@ Page({
       press_color: 0x2a6a2a,
       radius: 8,
       click_func() {
-        self.stopPlayer();
+        self.stopCurrent();
         push({ url: "page/InputVoiceScreen", param: JSON.stringify({ id: "0", text: "" }) });
       },
     });
@@ -84,19 +111,12 @@ Page({
       return;
     }
 
-    // Render each recording as a button row
     const startY = STATUS_BAR_H + HEADER_H + 8;
-    recordings.forEach((file, i) => {
-      const filepath = "data://" + file;
+    recordings.forEach(function (file, i) {
       const y = startY + i * (ROW_H + 4);
 
-      createWidget(widget.FILL_RECT, {
-        x: 4, y, w: W - 8, h: ROW_H,
-        color: 0x111111,
-        radius: 8,
-      });
+      createWidget(widget.FILL_RECT, { x: 4, y, w: W - 8, h: ROW_H, color: 0x111111, radius: 8 });
 
-      // File name text
       createWidget(widget.TEXT, {
         x: 12, y: y + 8, w: W - 24, h: 28,
         text: file,
@@ -107,7 +127,6 @@ Page({
         text_style: text_style.NONE,
       });
 
-      // Status / Play button
       const btn = createWidget(widget.BUTTON, {
         x: 12, y: y + 38, w: W - 24, h: 26,
         text: "▶ Play",
@@ -116,10 +135,10 @@ Page({
         press_color: 0x2a5a2a,
         radius: 6,
         click_func() {
-          if (self.state.playingFile === filepath) {
-            self.stopPlayer();
+          if (self.state.currentIndex === i) {
+            self.stopCurrent();
           } else {
-            self.playFile(filepath, i);
+            self.playIndex(i);
           }
         },
       });
@@ -141,62 +160,35 @@ Page({
     btn.setProperty(prop.NORMAL_COLOR, color);
   },
 
-  stopPlayer() {
-    if (this.state.player) {
-      this.state.player.stop();
-      const wasIdx = this.state.rows.indexOf(
-        (this.state.playingFile || "").replace("data://", "")
-      );
-      this.state.player = null;
-      this.state.playingFile = null;
-      if (wasIdx > -1) this.updateRowBtn(wasIdx, "▶ Play", 0x1a3a1a);
-      this.updateStatus(this.state.rows.length + " recording(s)");
+  stopCurrent() {
+    if (this.state.currentIndex > -1) {
+      this.updateRowBtn(this.state.currentIndex, "▶ Play", 0x1a3a1a);
+      this.state.currentIndex = -1;
     }
+    // Stop the persistent player — safe to call from any state
+    try { this.state.player.stop(); } catch (_) {}
+    this.updateStatus(this.state.rows.length + " recording(s)");
   },
 
-  playFile(filepath, index) {
-    this.stopPlayer();
+  playIndex(index) {
+    // Stop whatever is playing first, reset its button
+    if (this.state.currentIndex > -1) {
+      this.updateRowBtn(this.state.currentIndex, "▶ Play", 0x1a3a1a);
+    }
 
-    const displayName = filepath.replace("data://", "");
+    this.state.currentIndex = index;
+    const filepath = "data://" + this.state.rows[index];
+
     this.updateStatus("Loading...");
     this.updateRowBtn(index, "loading...", 0x333300);
 
-    const player = create(id.PLAYER);
-    const self = this;
-    // Session token: if stopPlayer() is called before callbacks fire,
-    // this.state.player is nulled, so the token check below discards them.
-    this.state.player = player;
-
-    player.addEventListener(player.event.PREPARE, function (result) {
-      if (self.state.player !== player) return; // superseded or stopped
-      if (result) {
-        player.start();
-        self.state.playingFile = filepath;
-        self.updateStatus("Playing: " + displayName);
-        self.updateRowBtn(index, "■ Stop", 0x3a1a1a);
-      } else {
-        self.state.player = null;
-        self.updateStatus("Failed: " + displayName);
-        self.updateRowBtn(index, "▶ Play", 0x1a3a1a);
-      }
-    });
-
-    player.addEventListener(player.event.COMPLETE, function () {
-      if (self.state.player !== player) return;
-      // Do NOT call player.stop() here — the player already finished naturally.
-      // Calling stop() on a completed player corrupts the media engine and
-      // prevents any subsequent player instance from reaching PREPARE.
-      self.state.player = null;
-      self.state.playingFile = null;
-      self.updateStatus(self.state.rows.length + " recording(s)");
-      self.updateRowBtn(index, "▶ Play", 0x1a3a1a);
-    });
-
-    player.setSource(player.source.FILE, { file: filepath });
-    player.prepare();
+    // Reuse the same player: stop → setSource → prepare
+    try { this.state.player.stop(); } catch (_) {}
+    this.state.player.setSource(this.state.player.source.FILE, { file: filepath });
+    this.state.player.prepare();
   },
 
   onDestroy() {
-    this.stopPlayer();
+    this.stopCurrent();
   },
 });
