@@ -60,10 +60,6 @@ class VoiceRecordingsScreen extends ListView {
       p.stop();
     } catch (_) {
     }
-    try {
-      p.release();
-    } catch (_) {
-    }
   }
   playFile(filepath) {
     this.stopCurrentPlayer();
@@ -80,7 +76,7 @@ class VoiceRecordingsScreen extends ListView {
         this.statusText.updateProps({ text: `Failed to load: ${displayName}` });
         this.player = null;
         try {
-          player.release();
+          player.stop();
         } catch (_) {
         }
       }
@@ -90,7 +86,7 @@ class VoiceRecordingsScreen extends ListView {
       this.statusText.updateProps({ text: `Done: ${displayName}` });
       this.player = null;
       try {
-        player.release();
+        player.stop();
       } catch (_) {
       }
     });
