@@ -52,54 +52,54 @@ class VoiceRecordingsScreen extends ListView {
     }));
     return items;
   }
-  playFile(filepath) {
-    if (this.player) {
-      try {
-        this.player.stop();
-        this.player.release();
-      } catch (_) {
-      }
-      this.player = null;
+  stopCurrentPlayer() {
+    if (!this.player) return;
+    const p = this.player;
+    this.player = null;
+    try {
+      p.stop();
+    } catch (_) {
     }
+    try {
+      p.release();
+    } catch (_) {
+    }
+  }
+  playFile(filepath) {
+    this.stopCurrentPlayer();
     const displayName = filepath.replace("data://", "");
     this.statusText.updateProps({ text: `Loading: ${displayName}` });
     const player = media.create(media.id.PLAYER);
     this.player = player;
     player.addEventListener(player.event.PREPARE, (result) => {
+      if (this.player !== player) return;
       if (result) {
         this.statusText.updateProps({ text: `Playing: ${displayName}` });
         player.start();
       } else {
         this.statusText.updateProps({ text: `Failed to load: ${displayName}` });
+        this.player = null;
         try {
           player.release();
         } catch (_) {
         }
-        if (this.player === player) this.player = null;
       }
     });
     player.addEventListener(player.event.COMPLETE, () => {
+      if (this.player !== player) return;
       this.statusText.updateProps({ text: `Done: ${displayName}` });
+      this.player = null;
       try {
-        player.stop();
         player.release();
       } catch (_) {
       }
-      if (this.player === player) this.player = null;
     });
     player.setSource(player.source.FILE, { file: filepath });
     player.prepare();
   }
   performDestroy() {
     super.performDestroy();
-    if (this.player) {
-      try {
-        this.player.stop();
-        this.player.release();
-      } catch (_) {
-      }
-      this.player = null;
-    }
+    this.stopCurrentPlayer();
   }
 }
 Page(BaseCompositor.makePage(new VoiceRecordingsScreen({})));
