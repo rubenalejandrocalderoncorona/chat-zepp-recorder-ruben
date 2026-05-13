@@ -8,7 +8,8 @@ const device = getDeviceInfo();
 const W = device.width;
 const H = device.height;
 const ROW_H = 80;
-const HEADER_H = 64;
+const STATUS_BAR_H = 56;
+const HEADER_H = 56;
 
 function tryReaddir(path) {
   try {
@@ -50,10 +51,10 @@ Page({
     this.state.rows = recordings;
 
     createWidget(widget.FILL_RECT, { x: 0, y: 0, w: W, h: H, color: 0x000000 });
-    createWidget(widget.FILL_RECT, { x: 0, y: 0, w: W, h: HEADER_H, color: 0x111111 });
+    createWidget(widget.FILL_RECT, { x: 0, y: STATUS_BAR_H, w: W, h: HEADER_H, color: 0x111111 });
 
     createWidget(widget.BUTTON, {
-      x: 12, y: 12, w: 60, h: 40,
+      x: 12, y: STATUS_BAR_H + 8, w: 60, h: 40,
       text: "<",
       text_size: 22,
       normal_color: 0x222222,
@@ -63,7 +64,7 @@ Page({
     });
 
     createWidget(widget.BUTTON, {
-      x: W - 76, y: 12, w: 64, h: 40,
+      x: W - 76, y: STATUS_BAR_H + 8, w: 64, h: 40,
       text: "+ Rec",
       text_size: 14,
       normal_color: 0x1a4a1a,
@@ -76,7 +77,7 @@ Page({
     });
 
     this.state.statusWidget = createWidget(widget.TEXT, {
-      x: 74, y: 14, w: W - 150, h: 36,
+      x: 74, y: STATUS_BAR_H + 10, w: W - 150, h: 36,
       text: recordings.length + " rec(s)",
       text_size: 16,
       color: 0xaaaaaa,
@@ -94,7 +95,7 @@ Page({
 
     if (listItems.length === 0) {
       createWidget(widget.TEXT, {
-        x: 0, y: H / 2 - 20, w: W, h: 40,
+        x: 0, y: H / 2, w: W, h: 40,
         text: "No files found anywhere",
         text_size: 18,
         color: 0x666666,
@@ -107,9 +108,9 @@ Page({
 
     this.state.listWidget = createWidget(widget.SCROLL_LIST, {
       x: 0,
-      y: HEADER_H + 4,
+      y: STATUS_BAR_H + HEADER_H + 4,
       w: W,
-      h: H - HEADER_H - 4,
+      h: H - STATUS_BAR_H - HEADER_H - 4,
       item_space: 4,
       item_count: listItems.length,
       item_config: [{
