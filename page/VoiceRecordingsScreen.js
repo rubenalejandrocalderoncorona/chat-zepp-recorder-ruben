@@ -1,5 +1,5 @@
 import { create, id } from "@zos/media";
-import { readdirSync } from "@zos/fs";
+import { readdirSync, statSync } from "@zos/fs";
 import { createWidget, widget, align, prop, text_style } from "@zos/ui";
 import { getDeviceInfo } from "@zos/device";
 import { push, back } from "@zos/router";
@@ -10,16 +10,28 @@ const H = device.height;
 const ROW_H = 80;
 const HEADER_H = 64;
 
-function getRecordings() {
+function tryReaddir(path) {
   try {
-    const files = readdirSync({ path: "data://" });
-    console.log("readdirSync result:", JSON.stringify(files));
-    if (!files) return [];
-    return files.filter((f) => f.endsWith(".opus")).sort().reverse();
+    const r = readdirSync({ path });
+    console.log("readdir(" + path + "):", JSON.stringify(r));
+    return r || [];
   } catch (e) {
-    console.log("readdirSync error:", e);
+    console.log("readdir(" + path + ") error:", e);
     return [];
   }
+}
+
+function getRecordings() {
+  // Try both path formats — docs are ambiguous about whether data:// is needed
+  let files = tryReaddir("data://");
+  if (!files || files.length === 0) {
+    files = tryReaddir("");
+  }
+  if (!files || files.length === 0) {
+    files = tryReaddir("./");
+  }
+  console.log("all files found:", JSON.stringify(files));
+  return files.filter((f) => f.endsWith(".opus")).sort().reverse();
 }
 
 Page({
@@ -34,7 +46,7 @@ Page({
   build() {
     const self = this;
     const recordings = getRecordings();
-    console.log("recordings found:", recordings.length, JSON.stringify(recordings));
+    console.log("opus recordings:", recordings.length, JSON.stringify(recordings));
     this.state.rows = recordings;
 
     createWidget(widget.FILL_RECT, { x: 0, y: 0, w: W, h: H, color: 0x000000 });
@@ -73,11 +85,18 @@ Page({
       text_style: text_style.NONE,
     });
 
-    if (recordings.length === 0) {
+    // Always show a scrollable list of ALL files (not just .opus) for debugging
+    const allFiles = tryReaddir("data://");
+    const debugItems = allFiles.length > 0 ? allFiles : ["(data:// empty)", ...tryReaddir(""), ...tryReaddir("./")];
+
+    const listItems = recordings.length > 0 ? recordings : debugItems;
+    const isDebug = recordings.length === 0;
+
+    if (listItems.length === 0) {
       createWidget(widget.TEXT, {
         x: 0, y: H / 2 - 20, w: W, h: 40,
-        text: "No recordings yet",
-        text_size: 20,
+        text: "No files found anywhere",
+        text_size: 18,
         color: 0x666666,
         align_h: align.CENTER_H,
         align_v: align.CENTER_V,
@@ -92,13 +111,14 @@ Page({
       w: W,
       h: H - HEADER_H - 4,
       item_space: 4,
-      item_count: recordings.length,
+      item_count: listItems.length,
       item_config: [{
         type_id: 0,
         item_height: ROW_H,
-        item_bg_color: 0x111111,
+        item_bg_color: isDebug ? 0x331111 : 0x111111,
         item_bg_radius: 8,
         item_click_func(_widget, index) {
+          if (isDebug) return;
           const filepath = "data://" + self.state.rows[index];
           if (self.state.playingFile === filepath) {
             self.stopPlayer();
@@ -133,10 +153,10 @@ Page({
           },
         }],
       }],
-      data_array: recordings.map((f) => ({
+      data_array: listItems.map((f) => ({
         type_id: 0,
         name_text: f,
-        status_text: "",
+        status_text: isDebug ? "debug" : "",
       })),
     });
   },
@@ -193,7 +213,6 @@ Page({
     });
 
     player.addEventListener(player.event.COMPLETE, function () {
-      console.log("COMPLETE:", filepath);
       player.stop();
       self.state.player = null;
       self.state.playingFile = null;
