@@ -5,8 +5,8 @@
         "appName": "AI Chat",
         "appType": "app",
         "version": {
-            "code": 2,
-            "name": "2.7.0"
+            "code": 3,
+            "name": "3.0.0"
         },
         "icon": "icon.png",
         "vender": "zepp",
