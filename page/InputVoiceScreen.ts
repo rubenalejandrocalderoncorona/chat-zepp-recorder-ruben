@@ -4,29 +4,27 @@ import {osImport} from "@zosx/utils";
 import {ZeppMediaLibrary, ZeppMediaRecorder} from "./types/ZosMediaTypes";
 import {ListView} from "mzfw/device/UiListView";
 import {Component} from "mzfw/device/UiComponent";
-import {closeSync, O_RDONLY, openSync, readSync, rmSync, statSync} from "@zosx/fs";
+import {rmSync, statSync} from "@zosx/fs";
 import {ImageComponent} from "mzfw/device/UiNativeComponents/UiImageComponent";
 import {TextComponent} from "mzfw/device/UiTextComponent";
 import {getText as t} from "@zosx/i18n";
 import {Button, ButtonVariant} from "mzfw/device/UiButton";
-import {SERVER_BASE_URL} from "./shared/constants";
-import {getRequestHeaders} from "./shared/Tools";
-import {ServerChatResponse, ServerVoicePrepareResponse} from "./types/ServerResponse";
-import {saveNewMessageToFile} from "./shared/saveNewMessageToFile";
 import {replace} from "@zosx/router";
 import {align} from "@zosx/ui";
-import {getSystemInfo} from "@zosx/settings";
 import {resetPageBrightTime, setPageBrightTime} from "@zosx/display";
 import TimeoutID = setTimeout.TimeoutID;
-import { AiChatTheme } from "./shared/AiChatTheme";
+import {AiChatTheme} from "./shared/AiChatTheme";
+import {ConfigStorage} from "mzfw/device/Path";
 
 const media = osImport<ZeppMediaLibrary>("@zos/media", null);
+const RECORDINGS_STORAGE = "recordings_list.json";
 
 class InputVoiceScreen extends ListView<IMEProps> {
   public theme = new AiChatTheme();
 
   private recorder: ZeppMediaRecorder | null = null;
   private recorderTimeout: TimeoutID | null = null;
+  private currentFile: string = "";
 
   private viewText = new TextComponent({
     text: t("Preparing..."),
@@ -39,23 +37,13 @@ class InputVoiceScreen extends ListView<IMEProps> {
     imageHeight: 60,
   });
 
-  /**
-   * Shows icon in top of page
-   * @protected
-   */
   protected buildHeader(): Component<any> | null {
     return this.viewIcon;
   }
 
-  /**
-   * Build main UI
-   * @protected
-   */
   protected build(): (Component<any> | null)[] {
     setPageBrightTime({brightTime: 60000});
-    return [
-      this.viewText,
-    ]
+    return [this.viewText];
   }
 
   performDestroy() {
@@ -63,68 +51,31 @@ class InputVoiceScreen extends ListView<IMEProps> {
     resetPageBrightTime();
   }
 
-  /**
-   * Validate limits and start recording
-   */
   performRender() {
     super.performRender();
-
-    // Check limits and start recording
-    fetch(`${SERVER_BASE_URL}/api/v2/voice/prepare`, {
-      headers: {
-        ...getRequestHeaders(),
-        "Device-Firmware": getSystemInfo().firmwareVersion,
-      }
-    }).then((r) => {
-      if (r.status != 200 && r.status != 401) {
-        this.onRequestError(null, r.status);
-        return null;
-      }
-
-      return r.json();
-    }).then((d: ServerVoicePrepareResponse) => {
-      if(!d) return;
-      if (!d.result) {
-        this.updateView(t(d.error));
-        if(d.requiredFirmware)
-          this.viewMinFirmware(d.requiredFirmware);
-        return;
-      }
-
-      this.startRecording();
-    }).catch((e) => {
-      console.log(e);
-      this.updateView(t("Unknown error:") + e.toString());
-    });
+    this.startRecording();
   }
 
-  /**
-   * Start voice recording
-   * @private
-   */
   private startRecording() {
-    // Delete file, if exists
-    try {
-      rmSync("voice.opus");
-    } catch(_) {}
+    // Unique filename per recording using timestamp
+    this.currentFile = `rec_${Date.now()}.opus`;
 
-    // Start OS recorder
+    try { rmSync("voice.opus"); } catch(_) {}
+
     this.recorder = media.create(media.id.RECORDER);
-    this.recorder.setFormat(media.codec.OPUS, {target_file: "voice.opus"});
+    this.recorder.setFormat(media.codec.OPUS, {target_file: this.currentFile});
     this.recorder.start();
 
-    // Max record time limit
-    const timeout = setTimeout(() => {
-      // Max recording time
-      this.updateView(t("Too long record. Hint: use Send button when you finish your prompt."), "timeout");
-      this.removeComponent(button);
-    }, 15000);
-
-    // Update UI
     this.updateView(t("Listening..."), "recording");
 
+    const timeout = setTimeout(() => {
+      this.updateView(t("Max time reached. Saving..."), "timeout");
+      this.removeComponent(button);
+      this.stopRecording();
+    }, 15000);
+
     const button = new Button({
-      text: t("Send"),
+      text: t("Save"),
       variant: ButtonVariant.PRIMARY,
       onClick: () => {
         this.removeComponent(button);
@@ -138,84 +89,38 @@ class InputVoiceScreen extends ListView<IMEProps> {
   private stopRecording() {
     if (!this.recorder) return;
 
-    // Stop OS recorder
     this.recorder.stop();
     clearTimeout(this.recorderTimeout);
     this.recorder = null;
 
-    // Continue
-    this.sendRequest();
-  }
+    this.updateView(t("Saving..."), "loading");
 
-  /**
-   * Will send recorded audio file to server and create new dialog
-   * @private
-   */
-  private sendRequest() {
-    const stat = statSync({path: "voice.opus"});
-    if(!stat || stat.size == 0)
-      return this.updateView(t("Failed: file not found"));
+    // Verify file was written
+    try {
+      const stat = statSync({path: this.currentFile});
+      if (!stat || stat.size === 0) {
+        this.updateView("Recording failed: empty file", "warning");
+        return;
+      }
+    } catch(_) {
+      this.updateView("Recording failed: file not found", "warning");
+      return;
+    }
 
-    const fd = openSync({path: "voice.opus", flag: O_RDONLY});
-    const buffer = Buffer.alloc(stat.size);
-    readSync({fd, buffer: buffer.buffer});
-    closeSync(fd);
+    // Append filename to persistent list
+    const storage = new ConfigStorage(RECORDINGS_STORAGE);
+    const list: string[] = storage.getItem("files") ?? [];
+    list.push(this.currentFile);
+    storage.setItem("files", list);
+    storage.writeChanges();
 
-    this.updateView(t("Processing..."), "loading");
-
-    let status: number;
-    fetch(`${SERVER_BASE_URL}/api/v2/chat`, {
-      method: "POST",
-      body: buffer,
-      headers: {
-        "Content-Type": "audio/ogg",
-        "Context-ID": this.props.id ?? "0",
-        ...getRequestHeaders(),
-      },
-    }).then((r) => {
-      status = r.status;
-      return (status == 0 || status >= 500) ? null : r.json();
-    }).then((data: ServerChatResponse) => {
-      if (status !== 200 || !data.result)
-        return this.onRequestError(data, status);
-
-      saveNewMessageToFile(data);
-      replace({
-        url: "page/ChatViewScreen",
-        params: JSON.stringify({id: data.context_id})
-      })
-    })
-  }
-
-  /**
-   * Handle server error
-   *
-   * @param data
-   * @param status
-   * @private
-   */
-  private onRequestError(data: ServerChatResponse, status: number) {
-    console.log(`ERR ${status} ${data}`);
-    let message = "Unknown error";
-    if (status === 429) message = "Too many requests";
-    else if (data && data.error) message = data.error;
-
-    this.updateView(message);
-  }
-
-  private viewMinFirmware(minFirmware: string) {
-    this.addComponent(new TextComponent({
-      text: t("Min firmware version: ") + minFirmware + ".x.x",
-      textSize: this.theme.FONT_SIZE - 4,
-      color: 0xAAAAAA,
-      alignH: align.CENTER_H,
-      marginV: 16,
-    }))
+    // Go to recordings list
+    replace({url: "page/VoiceRecordingsScreen"});
   }
 
   private updateView(message: string, icon: string = "warning") {
     this.viewText.updateProps({text: message});
-    this.viewIcon.updateProps({src: `icon/60/${icon}.png`})
+    this.viewIcon.updateProps({src: `icon/60/${icon}.png`});
   }
 }
 

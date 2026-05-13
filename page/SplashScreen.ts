@@ -7,6 +7,13 @@ import {ConfigStorage} from "mzfw/device/Path";
 
 class SplashScreen extends TemplateSplashScreen {
     protected onInit(): Promise<void> {
+        // No server configured — go straight to home in online mode for local testing
+        if(!SERVER_BASE_URL) {
+            this.continueToUrl = "page/HomePageScreen";
+            this.continueParam = JSON.stringify({isOnline: true, news: null});
+            return Promise.resolve();
+        }
+
         let resp: Response;
         this.setStatus(t("Processing..."));
 

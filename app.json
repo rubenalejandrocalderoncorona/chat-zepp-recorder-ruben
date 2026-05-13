@@ -89,6 +89,7 @@
                         "page/ChatViewScreen",
                         "page/InputKeyboardScreen",
                         "page/InputVoiceScreen",
+                        "page/VoiceRecordingsScreen",
                         "page/SettingsScreen",
                         "page/SettingsKeyboardScreen",
                         "page/SettingsModelScreen",
