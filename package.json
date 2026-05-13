@@ -5,10 +5,10 @@
     "main": "app.js",
     "module": true,
     "scripts": {
-        "build": "zeusx build",
-        "dev": "zeusx dev",
-        "preview": "zeusx preview",
-        "bridge": "zeusx bridge"
+        "build": "zeus build",
+        "dev": "zeus dev",
+        "preview": "zeus preview",
+        "bridge": "zeus bridge"
     },
     "author": "",
     "license": "ISC",

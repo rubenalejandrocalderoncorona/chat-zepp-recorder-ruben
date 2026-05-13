@@ -64,38 +64,11 @@ class InputVoiceScreen extends ListView<IMEProps> {
   }
 
   /**
-   * Validate limits and start recording
+   * Start recording immediately (no server check)
    */
   performRender() {
     super.performRender();
-
-    // Check limits and start recording
-    fetch(`${SERVER_BASE_URL}/api/v2/voice/prepare`, {
-      headers: {
-        ...getRequestHeaders(),
-        "Device-Firmware": getSystemInfo().firmwareVersion,
-      }
-    }).then((r) => {
-      if (r.status != 200 && r.status != 401) {
-        this.onRequestError(null, r.status);
-        return null;
-      }
-
-      return r.json();
-    }).then((d: ServerVoicePrepareResponse) => {
-      if(!d) return;
-      if (!d.result) {
-        this.updateView(t(d.error));
-        if(d.requiredFirmware)
-          this.viewMinFirmware(d.requiredFirmware);
-        return;
-      }
-
-      this.startRecording();
-    }).catch((e) => {
-      console.log(e);
-      this.updateView(t("Unknown error:") + e.toString());
-    });
+    this.startRecording();
   }
 
   /**
@@ -138,13 +111,18 @@ class InputVoiceScreen extends ListView<IMEProps> {
   private stopRecording() {
     if (!this.recorder) return;
 
-    // Stop OS recorder
     this.recorder.stop();
     clearTimeout(this.recorderTimeout);
     this.recorder = null;
 
-    // Continue
-    this.sendRequest();
+    // Show recorded file size as proof the mic worked
+    try {
+      const stat = statSync({path: "voice.opus"});
+      const kb = stat ? (stat.size / 1024).toFixed(1) : "0";
+      this.updateView(`Mic OK! Recorded ${kb} KB`, "true");
+    } catch(_) {
+      this.updateView("Recorded (file check failed)", "true");
+    }
   }
 
   /**

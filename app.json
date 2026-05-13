@@ -12,45 +12,72 @@
         "vender": "zepp",
         "description": "empty app"
     },
-    "includeAssets": {
-        "mzfw": "./node_modules/mzfw/assets",
-        "icon": "./assets/common/icon"
-    },
-    "includeRawAssets": {
-        "mzfw": "./node_modules/mzfw/assets_raw"
-    },
     "defaultLanguage": "en-US",
     "withBundleGlobals": true,
     "permissions": [
         "data:os.device.info",
         "device:os.mic"
     ],
-    "targetZeppOS": "1.0.0",
+    "runtime": {
+        "apiVersion": {
+            "compatible": "3.0.0",
+            "target": "3.0.0",
+            "minVersion": "3.0"
+        }
+    },
     "targets": {
         "modern": {
-            "targetZeppOS": "3.0.0",
             "designWidth": 480,
             "platforms": [
-                "active",
-                "active_2",
-		"active_2_square",
-                "active_edge",
-                "balance",
-		"balance2",
-		"balance2_xt",
-                "bip5unity",
-		"bip6",
-                "cheetah",
-                "cheetah_pro",
-                "cheetah_square",
-                "falcon",
-                "gtr4",
-                "gtr4le",
-                "gts4",
-                "trex3",
-                "trex3pro44",
-                "trex3pro48",
-                "trex_ultra"
+                { "deviceSource": 8323328 },
+                { "deviceSource": 8323329 },
+                { "deviceSource": 8913152 },
+                { "deviceSource": 8913153 },
+                { "deviceSource": 10092800 },
+                { "deviceSource": 10092801 },
+                { "deviceSource": 8388864 },
+                { "deviceSource": 8388865 },
+                { "deviceSource": 8519936 },
+                { "deviceSource": 8519937 },
+                { "deviceSource": 8519939 },
+                { "deviceSource": 9568512 },
+                { "deviceSource": 9568513 },
+                { "deviceSource": 9568515 },
+                { "deviceSource": 10486016 },
+                { "deviceSource": 10486017 },
+                { "deviceSource": 10486019 },
+                { "deviceSource": 8782081 },
+                { "deviceSource": 8782088 },
+                { "deviceSource": 9765120 },
+                { "deviceSource": 9765121 },
+                { "deviceSource": 10158337 },
+                { "deviceSource": 8192256 },
+                { "deviceSource": 8192257 },
+                { "deviceSource": 8126720 },
+                { "deviceSource": 8126721 },
+                { "deviceSource": 8257793 },
+                { "deviceSource": 414 },
+                { "deviceSource": 415 },
+                { "deviceSource": 7930112 },
+                { "deviceSource": 7930113 },
+                { "deviceSource": 7864577 },
+                { "deviceSource": 7995648 },
+                { "deviceSource": 7995649 },
+                { "deviceSource": 8716544 },
+                { "deviceSource": 8716545 },
+                { "deviceSource": 8716547 },
+                { "deviceSource": 10682624 },
+                { "deviceSource": 10682625 },
+                { "deviceSource": 10682627 },
+                { "deviceSource": 10551552 },
+                { "deviceSource": 10551553 },
+                { "deviceSource": 10551555 },
+                { "deviceSource": 6553856 },
+                { "deviceSource": 6553857 },
+                { "deviceSource": 10944768 },
+                { "deviceSource": 10944769 },
+                { "deviceSource": 10944771 },
+                { "deviceSource": 10948867 }
             ],
             "module": {
                 "page": {
@@ -70,18 +97,6 @@
                         "page/DonateScreen"
                     ]
                 },
-                "//secondary-widget": {
-                    "widgets": [
-                        {
-                            "path": "secondary-widget/index",
-                            "icon": "icon.png",
-                            "name": "AI Chat",
-                            "runtime": {
-                                "type": "js"
-                            }
-                        }
-                    ]
-                },
                 "app-widget": {
                     "widgets": [
                         {
@@ -98,22 +113,6 @@
                     "path": "app-side/index"
                 }
             }
-        },
-        "legacy": {
-            "targetZeppOS": "1.0.0",
-            "designWidth": 480,
-            "platforms": [
-                "bip5",
-                "gtr_mini",
-                "gts4mini",
-                "band7",
-                "gtr3pro",
-                "gtr3",
-                "gts3",
-                "trex2",
-                "mi_band7"
-            ],
-            "moduleFrom": "modern"
         }
     }
 }
