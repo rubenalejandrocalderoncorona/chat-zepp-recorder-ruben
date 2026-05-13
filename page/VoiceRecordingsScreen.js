@@ -163,29 +163,35 @@ Page({
 
     const player = create(id.PLAYER);
     const self = this;
+    // Session token: if stopPlayer() is called before callbacks fire,
+    // this.state.player is nulled, so the token check below discards them.
+    this.state.player = player;
 
     player.addEventListener(player.event.PREPARE, function (result) {
+      if (self.state.player !== player) return; // superseded or stopped
       if (result) {
         player.start();
         self.state.playingFile = filepath;
         self.updateStatus("Playing: " + displayName);
         self.updateRowBtn(index, "■ Stop", 0x3a1a1a);
       } else {
-        self.updateStatus("Failed: " + displayName);
         self.state.player = null;
+        self.updateStatus("Failed: " + displayName);
         self.updateRowBtn(index, "▶ Play", 0x1a3a1a);
       }
     });
 
     player.addEventListener(player.event.COMPLETE, function () {
-      player.stop();
+      if (self.state.player !== player) return;
+      // Do NOT call player.stop() here — the player already finished naturally.
+      // Calling stop() on a completed player corrupts the media engine and
+      // prevents any subsequent player instance from reaching PREPARE.
       self.state.player = null;
       self.state.playingFile = null;
       self.updateStatus(self.state.rows.length + " recording(s)");
       self.updateRowBtn(index, "▶ Play", 0x1a3a1a);
     });
 
-    this.state.player = player;
     player.setSource(player.source.FILE, { file: filepath });
     player.prepare();
   },
